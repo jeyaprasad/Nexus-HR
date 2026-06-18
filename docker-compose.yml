@@ -1,0 +1,53 @@
+services:
+  # 1. PostgreSQL Database
+  db:
+    image: postgres:17-alpine
+    container_name: nexushr-db
+    environment:
+      POSTGRES_DB: nexushr
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 2. Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: nexushr-redis
+    ports:
+      - "6379:6379"
+
+  # 3. Spring Boot Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexushr-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod  # Use Postgres configuration
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/nexushr
+      - SPRING_DATA_REDIS_HOST=redis
+    depends_on:
+      - db
+      - redis
+
+  # 4. React 19 Frontend (Dev environment with Hot Reload)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: nexushr-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
