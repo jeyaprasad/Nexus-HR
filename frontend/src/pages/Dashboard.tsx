@@ -14,7 +14,7 @@ interface Stats {
   absentToday: number;
 }
 
-type TabType = 'employees' | 'attendance' | 'payroll' | 'leave' | 'performance';
+type TabType = 'employees' | 'attendance' | 'payroll' | 'leave' | 'performance' | 'ai';
 
 // Map tab names to backend API endpoints
 const TAB_API: Record<TabType, string> = {
@@ -23,6 +23,7 @@ const TAB_API: Record<TabType, string> = {
   payroll: '/payroll',
   leave: '/leaves',
   performance: '/performance',
+  ai: '/ai/attrition',
 };
 
 const TAB_LABELS: Record<TabType, string> = {
@@ -31,6 +32,7 @@ const TAB_LABELS: Record<TabType, string> = {
   payroll: '💰 Payroll',
   leave: '🏖 Leave',
   performance: '⭐ Performance',
+  ai: '🤖 AI Insights',
 };
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, theme = 'dark' }) => {
@@ -46,6 +48,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, theme = 'd
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [pdfLoading, setPdfLoading] = useState<number | null>(null);
 
+  // AI Insights States
+  const [employeesList, setEmployeesList] = useState<any[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<string>('');
+
   const isDark = theme === 'dark';
 
   const showToast = (msg: string, isError = true) => {
@@ -58,7 +66,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, theme = 'd
     }
   };
 
-  const tabs: TabType[] = ['employees', 'attendance', 'payroll', 'leave', 'performance'];
+  const tabs: TabType[] = ['employees', 'attendance', 'payroll', 'leave', 'performance', 'ai'];
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
@@ -73,6 +81,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, theme = 'd
   }, []);
 
   const fetchData = useCallback(async () => {
+    if (activeTab === 'ai') {
+      setLoading(false);
+      setData([]);
+      return;
+    }
     setLoading(true);
     setData([]);
     try {
@@ -92,6 +105,63 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, theme = 'd
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
+
+  useEffect(() => {
+    if (activeTab === 'ai') {
+      apiFetch<any[]>('/employees')
+        .then(res => setEmployeesList(Array.isArray(res) ? res : []))
+        .catch(err => showToast(err.message || 'Failed to fetch employees list'));
+    }
+  }, [activeTab]);
+
+  const handleRunAi = async () => {
+    if (!selectedEmployeeId) {
+      showToast('Please select an employee first');
+      return;
+    }
+    const emp = employeesList.find(e => e.id.toString() === selectedEmployeeId);
+    if (!emp) return;
+
+    setAiLoading(true);
+    setAiResult('');
+    try {
+      const [leaves, reviews, payrolls] = await Promise.all([
+        apiFetch<any[]>('/leaves'),
+        apiFetch<any[]>('/performance'),
+        apiFetch<any[]>('/payroll'),
+      ]);
+
+      const empLeaves = Array.isArray(leaves) ? leaves.filter(l => l.employeeId?.toString() === selectedEmployeeId || (l.employee && l.employee.id?.toString() === selectedEmployeeId)) : [];
+      const empReviews = Array.isArray(reviews) ? reviews.filter(r => r.employeeId?.toString() === selectedEmployeeId || (r.employee && r.employee.id?.toString() === selectedEmployeeId)) : [];
+      const empPayrolls = Array.isArray(payrolls) ? payrolls.filter(p => p.employeeId?.toString() === selectedEmployeeId || (p.employee && p.employee.id?.toString() === selectedEmployeeId)) : [];
+
+      const latestReview = empReviews.length > 0 ? empReviews[empReviews.length - 1] : null;
+      const latestPayroll = empPayrolls.length > 0 ? empPayrolls[empPayrolls.length - 1] : null;
+
+      const employeeData = `
+Employee Name: ${emp.firstName} ${emp.lastName}
+Department: ${emp.department || 'General'}
+Role: ${emp.role || 'Staff'}
+Status: ${emp.status || 'Active'}
+Leave Balance: ${emp.leaveBalance ?? 30} days
+Total Leave Requests: ${empLeaves.length} (Approved: ${empLeaves.filter((l: any) => l.status === 'APPROVED').length}, Rejected: ${empLeaves.filter((l: any) => l.status === 'REJECTED').length})
+Latest Performance Rating: ${latestReview ? latestReview.rating : 'N/A'}/5
+Latest Performance Feedback: ${latestReview ? latestReview.feedback : 'N/A'}
+Current Net Salary: ${latestPayroll ? latestPayroll.netSalary : 'N/A'}
+      `.trim();
+
+      const res = await apiFetch<{ prediction: string }>('/ai/attrition', {
+        method: 'POST',
+        body: JSON.stringify({ data: employeeData }),
+      });
+
+      setAiResult(res.prediction);
+    } catch (err: any) {
+      showToast(err.message || 'AI prediction failed');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleDelete = async (id: string | number) => {
     if (!confirm('Are you sure you want to delete this record?')) return;
@@ -364,7 +434,136 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, theme = 'd
 
   const hiddenFormKeys = ['id', 'createdAt', 'updatedAt', 'employeeName', 'reviewerName', 'netSalary', 'duration'];
 
+  const renderAiInsights = () => {
+    const selectedEmp = employeesList.find(e => e.id.toString() === selectedEmployeeId);
+    
+    // Determine risk level color scheme
+    let riskColor = 'border-white/5 bg-slate-900/50';
+    let riskText = 'No Analysis Yet';
+    if (aiResult.toLowerCase().includes('risk: high') || aiResult.toLowerCase().includes('high risk') || aiResult.toLowerCase().includes('high attrition')) {
+      riskColor = 'border-rose-500/30 bg-rose-950/20 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.15)] animate-pulse';
+      riskText = '🔴 HIGH ATTRITION RISK';
+    } else if (aiResult.toLowerCase().includes('risk: medium') || aiResult.toLowerCase().includes('medium risk') || aiResult.toLowerCase().includes('medium attrition')) {
+      riskColor = 'border-amber-500/30 bg-amber-950/20 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.15)] animate-pulse';
+      riskText = '🟡 MEDIUM ATTRITION RISK';
+    } else if (aiResult.toLowerCase().includes('risk: low') || aiResult.toLowerCase().includes('low risk') || aiResult.toLowerCase().includes('low attrition')) {
+      riskColor = 'border-emerald-500/30 bg-emerald-950/20 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]';
+      riskText = '🟢 LOW ATTRITION RISK';
+    }
+
+    return (
+      <div className={`p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 ${isDark ? 'bg-slate-950/40 text-slate-200' : 'bg-white text-slate-800'}`}>
+        {/* Left Column: Selector */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          <div>
+            <h2 className="text-lg font-black mb-1">Predictive Attrition & Retention</h2>
+            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              Select an employee to query Hugging Face Llama models for attrition risk analysis.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Select Employee</label>
+            <select
+              value={selectedEmployeeId}
+              onChange={e => { setSelectedEmployeeId(e.target.value); setAiResult(''); }}
+              className={`w-full px-4 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                isDark ? 'bg-slate-900 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+              }`}
+            >
+              <option value="">-- Choose Employee --</option>
+              {employeesList.map(e => (
+                <option key={e.id} value={e.id}>{e.firstName} {e.lastName} ({e.department || 'Staff'})</option>
+              ))}
+            </select>
+          </div>
+
+          {selectedEmp && (
+            <div className={`border rounded-xl p-4 flex flex-col gap-3 text-xs ${isDark ? 'border-white/5 bg-slate-900/60' : 'bg-slate-50 border-slate-200'}`}>
+              <h3 className="font-bold border-b border-white/5 pb-2 text-[11px] uppercase tracking-wider text-slate-400">Employee Summary</h3>
+              <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                <div>
+                  <span className="text-slate-500 block">Department</span>
+                  <span className="font-semibold">{selectedEmp.department || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Job Title</span>
+                  <span className="font-semibold">{selectedEmp.role || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Leave Balance</span>
+                  <span className="font-semibold text-teal-400">{selectedEmp.leaveBalance ?? 30} Days</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Status</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    selectedEmp.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                  }`}>{selectedEmp.status || 'ACTIVE'}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={handleRunAi}
+            disabled={aiLoading || !selectedEmployeeId}
+            className={`w-full py-3 rounded-lg text-sm font-extrabold shadow-lg transition-all cursor-pointer ${
+              aiLoading || !selectedEmployeeId
+                ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
+                : 'bg-gradient-to-r from-indigo-600 to-teal-500 hover:from-indigo-500 hover:to-teal-400 text-white hover:shadow-indigo-500/10'
+            }`}
+          >
+            {aiLoading ? '🤖 Analysis Running...' : '🔍 Analyze Attrition Risk'}
+          </button>
+        </div>
+
+        {/* Right Column: AI Output */}
+        <div className="lg:col-span-7 flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">AI Risk Assessment</span>
+            {aiResult && (
+              <span className={`px-3 py-1 rounded-full text-xs font-bold border ${riskColor}`}>
+                {riskText}
+              </span>
+            )}
+          </div>
+
+          <div className={`relative min-h-[300px] border rounded-2xl p-6 flex flex-col justify-between overflow-hidden ${
+            isDark ? 'bg-slate-900/40 border-white/5' : 'bg-slate-50 border-slate-200'
+          }`}>
+            {aiLoading ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/40 backdrop-blur-sm gap-4">
+                <div className="w-12 h-12 rounded-full border-4 border-slate-800 border-t-teal-400 animate-spin" />
+                <div className="flex flex-col items-center">
+                  <span className="text-sm font-bold text-teal-400 animate-pulse">Running Predictive Models...</span>
+                  <span className="text-slate-500 text-xs">Querying Hugging Face endpoint</span>
+                </div>
+              </div>
+            ) : null}
+
+            {aiResult ? (
+              <div className="whitespace-pre-line text-sm leading-relaxed font-medium text-slate-300 animate-fade-in">
+                {aiResult}
+              </div>
+            ) : !aiLoading ? (
+              <div className="flex flex-col items-center justify-center my-auto text-center p-8 animate-fade-in">
+                <span className="text-5xl mb-4">🧠</span>
+                <h3 className="text-base font-extrabold mb-1">Model Ready</h3>
+                <p className={`text-xs max-w-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Select an employee and press Analyze to run calculations and generate attrition risk intelligence.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderTable = () => {
+    if (activeTab === 'ai') {
+      return renderAiInsights();
+    }
     if (loading) {
       return (
         <div className="flex items-center justify-center py-20 gap-3">
@@ -466,12 +665,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, theme = 'd
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg hover:shadow-indigo-500/20 cursor-pointer transition-all"
-            onClick={() => openForm()}
-          >
-            + New Record
-          </button>
+          {activeTab !== 'ai' && (
+            <button
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg hover:shadow-indigo-500/20 cursor-pointer transition-all"
+              onClick={() => openForm()}
+            >
+              + New Record
+            </button>
+          )}
           <button
             className={`px-4 py-2 rounded-lg border text-sm cursor-pointer transition-all ${
               isDark ? 'border-white/10 text-slate-300 hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-slate-100'
