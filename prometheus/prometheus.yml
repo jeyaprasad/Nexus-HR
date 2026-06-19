@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s # How frequently to scrape targets by default
+  evaluation_interval: 15s # How frequently to evaluate rules
+
+# Scrape configurations containing endpoints to scrape
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'nexushr-backend'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      # Targets using the Docker Compose service name 'backend'
+      - targets: ['backend:8080']

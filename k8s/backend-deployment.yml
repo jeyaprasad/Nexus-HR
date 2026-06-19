@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexushr-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nexushr-backend
+  template:
+    metadata:
+      labels:
+        app: nexushr-backend
+    spec:
+      containers:
+        - name: backend
+          image: nexushr-backend:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://db:5432/nexushr
+            - name: SPRING_DATA_REDIS_HOST
+              value: redis
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: nexushr-backend
