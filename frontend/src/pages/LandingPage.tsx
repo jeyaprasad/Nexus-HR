@@ -52,7 +52,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, theme = 'd
             <span className="w-2.5 h-2.5 rounded-full bg-brand-light animate-pulse" />
             AI-Enabled · Java Full Stack · Production-Grade
           </div>
-          <h1 className={`text-4xl md:text-6xl font-black leading-tight tracking-tight mb-5 ${
+          <h1 className={`text-4xl md:text-6xl font-extrabold leading-tight tracking-tight mb-5 ${
             theme === 'dark' ? 'text-white' : 'text-slate-900'
           }`}>
             Enterprise HR,<br />
@@ -189,7 +189,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, theme = 'd
             { n: 200, s: "ms", l: "Average API response time" },
           ].map((st, i) => (
             <div key={i} className="text-center">
-              <div className="text-4xl md:text-5xl font-black text-brand-navy mb-2">
+              <div className="text-4xl md:text-5xl font-extrabold text-brand-navy mb-2">
                 <CountUp target={st.n} suffix={st.s} />
               </div>
               <div className={`text-xs font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{st.l}</div>
@@ -197,64 +197,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, theme = 'd
           ))}
         </div>
       </div>
-
-      {/* Architecture */}
-      <section id="architecture" className={`px-[5%] py-24 ${
-        theme === 'dark' ? 'bg-slate-900' : 'bg-white'
-      }`}>
-        <div className="text-center md:text-left mb-14">
-          <div className="text-[10px] font-bold text-brand-light tracking-[3px] uppercase mb-3">Technical Architecture</div>
-          <h2 className={`text-3xl md:text-4xl font-extrabold mb-4 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-            Modern Stack, <span className="text-brand-navy">Enterprise-Ready</span>
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className={`border rounded-2xl p-8 space-y-4 shadow-lg ${
-            theme === 'dark' ? 'bg-slate-800 border-white/5' : 'bg-white border-slate-200'
-          }`}>
-            {ARCH_LAYERS.map((layer, i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">{layer.label}</div>
-                <div className="flex flex-wrap gap-2">
-                  {layer.pills.map((p, j) => (
-                    <span key={j} className={`px-3 py-1 border rounded-full text-xs font-semibold ${
-                      theme === 'dark' ? 'bg-brand-navy/20 border-brand-navy/40 text-brand-light' : 'bg-slate-50 border-slate-200 text-slate-600'
-                    }`}>
-                      {p.l}
-                    </span>
-                  ))}
-                </div>
-                {i < ARCH_LAYERS.length - 1 && (
-                  <div className={`border-l border-dashed h-6 ml-4 my-1 ${
-                    theme === 'dark' ? 'border-white/10' : 'border-slate-300'
-                  }`} />
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-6">
-            {[
-              { icon: "⚡", bg: "bg-brand-navy/10 text-brand-navy", title: "Spring Boot 3 Backend", desc: "Modular microservice-ready architecture with Spring Security, Spring Data JPA, and WebSocket support." },
-              { icon: "🧠", bg: "bg-brand-light/20 text-brand-navy", title: "Spring AI Integration", desc: "LLM-powered attrition models and intelligent workforce recommendations." },
-              { icon: "📦", bg: "bg-slate-200 text-slate-600", title: "Containerized Deployment", desc: "Docker images with Kubernetes orchestration ensuring zero-downtime deployments." },
-            ].map((item, i) => (
-              <div key={i} className="flex gap-4 items-start">
-                <div className={`w-11 h-11 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${
-                  theme === 'dark' ? 'bg-slate-800' : item.bg
-                }`}>
-                  {item.icon}
-                </div>
-                <div>
-                  <h4 className={`text-sm font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{item.title}</h4>
-                  <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Security */}
       <section id="security" className={`px-[5%] py-24 border-t ${
@@ -292,7 +234,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, theme = 'd
         theme === 'dark' ? 'bg-slate-800' : 'bg-brand-navy/5'
       }`}>
         <div className="text-[10px] font-bold text-brand-light tracking-[3px] uppercase mb-3 relative">Get Started</div>
-        <h2 className={`text-3xl md:text-5xl font-black mb-5 relative leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+        <h2 className={`text-3xl md:text-5xl font-extrabold mb-5 relative leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
           Ready to Transform<br />
           <span className="text-brand-navy">Your Workforce Operations?</span>
         </h2>
@@ -301,15 +243,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, theme = 'd
         </p>
         <div className="flex justify-center gap-4 relative">
           <button
-            className="px-7 py-3.5 bg-brand-navy hover:bg-brand-navy/90 text-white font-bold rounded-lg cursor-pointer transition-all shadow-md"
+            className="px-8 py-3.5 bg-brand-navy hover:bg-brand-navy/90 text-white font-semibold rounded-md cursor-pointer transition-colors shadow-sm"
             onClick={onOpenAuth}
           >
             Sign In Now
-          </button>
-          <button className={`px-7 py-3.5 bg-transparent border font-semibold rounded-lg cursor-pointer transition-all ${
-            theme === 'dark' ? 'border-white/10 hover:border-white/20 text-white hover:bg-white/5' : 'border-slate-300 hover:border-slate-400 text-slate-800 hover:bg-slate-100'
-          }`}>
-            View on GitHub
           </button>
         </div>
       </div>
