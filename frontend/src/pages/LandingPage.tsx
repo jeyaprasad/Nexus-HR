@@ -68,17 +68,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, theme = 'd
 
           <div className="flex flex-wrap gap-4 mb-14">
             <button
-              className="px-7 py-3.5 bg-brand-navy hover:bg-brand-navy/90 text-white font-bold rounded-lg cursor-pointer transition-all shadow-md"
+              className="px-8 py-3.5 bg-brand-navy hover:bg-brand-navy/90 text-white font-bold rounded-md cursor-pointer transition-colors shadow-sm"
               onClick={onOpenAuth}
             >
               Get Started
-            </button>
-            <button className={`px-7 py-3.5 bg-transparent border font-semibold rounded-lg cursor-pointer transition-all flex items-center gap-2 ${
-              theme === 'dark' 
-                ? 'border-white/10 text-white hover:bg-white/5 hover:border-white/20' 
-                : 'border-slate-300 text-slate-800 hover:bg-slate-100 hover:border-slate-400'
-            }`}>
-              <span>▶</span> Watch Demo
             </button>
           </div>
 

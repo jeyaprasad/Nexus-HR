@@ -9,7 +9,7 @@ import { useNotifications, type NotificationPayload } from './hooks/useNotificat
 export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(getUser());
   const [showAuth, setShowAuth] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('light');
+  const [theme] = useState<'dark' | 'light'>('light');
   const [toasts, setToasts] = useState<NotificationPayload[]>([]);
 
   useNotifications({
@@ -49,18 +49,6 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Theme Toggle Button */}
-            <button
-              onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-              className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all ${
-                theme === 'dark' 
-                  ? 'border-white/10 text-slate-300 hover:bg-white/5' 
-                  : 'border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
-            </button>
-
             {user ? (
               <>
                 <span className={`hidden sm:inline text-xs font-medium ${
