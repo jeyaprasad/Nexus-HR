@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Copy lock files first for better layer caching
 COPY bun.lock package.json ./
-RUN bun install --frozen-lockfile
+RUN bun install
 
 COPY . .
 RUN bun run build
