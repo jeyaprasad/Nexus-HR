@@ -2,13 +2,20 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { getUser, logout } from "../lib/auth";
 
-export const NAV_ITEMS = [
+export type NavItem = {
+  label: string;
+  href: string;
+  icon: string;
+  roles?: string[];
+};
+
+export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: "⬛" },
   { label: "Employees", href: "/employees", icon: "👥" },
   { label: "Attendance", href: "/attendance", icon: "📅" },
-  { label: "Payroll", href: "/payroll", icon: "💰" },
+  { label: "Payroll", href: "/payroll", icon: "💰", roles: ["ADMIN", "HR"] },
   { label: "Performance", href: "/performance", icon: "📊" },
-  { label: "AI Insights", href: "/ai-insights", icon: "🤖" },
+  { label: "AI Insights", href: "/ai-insights", icon: "🤖", roles: ["ADMIN", "HR", "MANAGER"] },
 ];
 
 export function Sidebar() {
@@ -19,12 +26,12 @@ export function Sidebar() {
   return (
     <aside className="w-56 min-h-screen border-r border-border flex flex-col bg-background sticky top-0">
       <div className="px-6 py-5 border-b border-border">
-        <Link to="/" className="font-display text-lg font-extrabold tracking-tighter">
+        <Link to="/dashboard" className="font-display text-lg font-extrabold tracking-tighter">
           NEXUS<span className="text-primary">HR</span>
         </Link>
       </div>
       <nav className="flex-1 py-4 px-3 space-y-1">
-        {NAV_ITEMS.map((item) => (
+        {NAV_ITEMS.filter(item => !item.roles || (user?.role && item.roles.includes(user.role))).map((item) => (
           <Link
             key={item.href}
             to={item.href}
